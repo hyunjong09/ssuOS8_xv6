@@ -4,7 +4,7 @@
 
 char buf[1];
 int endLine;
-
+// test
 void
 hcat(int fd)
 {

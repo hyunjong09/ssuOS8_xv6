@@ -258,7 +258,7 @@ EXTRA=\
 	.gdbinit.tmpl gdbutil\
 	helloworld.c\
 	hcat.c\
-	#5_15 edit
+	#5_15 edit.
 
 dist:
 	rm -rf dist
