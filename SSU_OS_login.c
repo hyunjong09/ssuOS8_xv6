@@ -65,9 +65,14 @@ int check_idpw()
       {
         return 1;
       }
-      return 0;
+      else
+      {
+      	printf(1, "Login failed: Incorrect password\n");
+      	return 0;
+      }
     }
   }
+  printf(1, "Login failed: Username not found\n");
   return 0;
 }
 
