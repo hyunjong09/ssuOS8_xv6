@@ -4,6 +4,6 @@
 
 int main(int argc, char **)
 {
-	printf(1, "Hello Wold XV6\\n");
+	printf(1, "Hello Wold XV6\n");
 	exit(); //test1
 }

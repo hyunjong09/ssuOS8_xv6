@@ -27,7 +27,8 @@ main(void)
       exit();
     }
     if(pid == 0){
-      exec("sh", argv);
+      exec("SSU_OS_login", argv); //5.16 add
+      	//exec("sh", argv);
       printf(1, "init: exec sh failed\n");
       exit();
     }
