@@ -170,10 +170,10 @@ syscall(void)
     curproc->tf->eax = syscalls[num]();
     // trace
     if(curproc->tracemask >> num){
-      cprintf("syscall traced: pid = %d, syscall = %s, %d returned\\n", curproc->pid, syscallnames[num], curproc->tf->eax);
+      cprintf("syscall traced: pid = %d, syscall = %s, %d returned\n", curproc->pid, syscallnames[num], curproc->tf->eax);
     }
   } else {
-    cprintf("%d %s: unknown sys call %d\\n",
+    cprintf("%d %s: unknown sys call %d\n",
             curproc->pid, curproc->name, num);
     curproc->tf->eax = -1;
   }
