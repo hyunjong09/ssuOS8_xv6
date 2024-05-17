@@ -23,6 +23,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int memsize(void);  // 새로운 시스템 호출 추가
 
 // ulib.c
 int stat(const char*, struct stat*);

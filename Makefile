@@ -184,6 +184,7 @@ UPROGS=\
 	_helloworld\
 	_hcat\
 	_SSU_OS_login\
+	_memsizetest\
 	#5_15 edit
 
 fs.img: mkfs README list.txt $(UPROGS)
@@ -260,6 +261,7 @@ EXTRA=\
 	helloworld.c\
 	hcat.c\
 	SSU_OS_login.c\
+	memsizetest.c\
 	#5_15 edit.
 
 dist:
