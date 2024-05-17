@@ -90,6 +90,7 @@ sys_uptime(void)
   return xticks;
 }
 
+//add 05_17
 // return memory size 
 int
 sys_memsize(void)
@@ -99,4 +100,14 @@ sys_memsize(void)
   size = myproc()->sz;
 
   return size;
+}
+
+// trace (pass the integer argument (user to kernel))
+int
+sys_trace(void){
+  if(argint(0, &myproc()->tracemask) < 0){
+    return -1;
+  }
+
+  return 0;
 }
