@@ -119,3 +119,9 @@ sys_ps(void)
 {
   return ps();
 }
+//스케줄러 비교 코드 추가
+int
+sys_uptime(void)
+{
+  return uptime();
+}

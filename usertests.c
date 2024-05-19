@@ -1745,6 +1745,27 @@ rand()
   return randstate;
 }
 
+void
+time_test(void)
+{
+  int start, end;
+
+  start = uptime();
+
+  if (fork() == 0) {
+    // CPU-bound 작업
+    for (int i = 0; i < 1000000; i++) {
+      asm("nop"); // 단순 반복
+    }
+    exit();
+  }
+
+  wait();
+
+  end = uptime();
+  printf(1, "Elapsed ticks: %d\n", end - start);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -1755,7 +1776,9 @@ main(int argc, char *argv[])
     exit();
   }
   close(open("usertests.ran", O_CREATE));
-
+  time_test();
+  exit();
+  /*스케줄링 비교 코드*/
   argptest();
   createdelete();
   linkunlink();
