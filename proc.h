@@ -51,6 +51,8 @@ struct proc {
   char name[16];               // Process name (debugging)
   int tracemask;    // add field 05_17 tracemask
   int priority;     // add 05_19 ps commend
+  int queue;      // 현재 프로세스가 속한 큐의 인덱스
+  int n_run;      // 현재 큐에서 실행된 틱 수
 };
 
 // Process memory is laid out contiguously, low addresses first:
