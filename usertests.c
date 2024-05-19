@@ -1745,6 +1745,7 @@ rand()
   return randstate;
 }
 
+/*
 void
 time_test(void)
 {
@@ -1765,6 +1766,8 @@ time_test(void)
   end = uptime();
   printf(1, "Elapsed ticks: %d\n", end - start);
 }
+*/
+//scheduler test code develop 예정
 
 int
 main(int argc, char *argv[])
@@ -1776,8 +1779,7 @@ main(int argc, char *argv[])
     exit();
   }
   close(open("usertests.ran", O_CREATE));
-  time_test();
-  exit();
+ // time_test();
   /*스케줄링 비교 코드*/
   argptest();
   createdelete();

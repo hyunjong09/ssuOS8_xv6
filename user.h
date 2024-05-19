@@ -26,7 +26,6 @@ int uptime(void);
 int memsize(void);  // 새로운 시스템 호출 추가
 int trace(int);   // 새로운 시스템 호출 추가
 int ps(void);       // ps 커맨드드
-int uptime(void);  // 시스템이 부팅된 후 경과한 시간을 틱 단위로 반환
 
 
 // ulib.c
