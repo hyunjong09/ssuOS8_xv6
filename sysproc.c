@@ -111,3 +111,11 @@ sys_trace(void){
 
   return 0;
 }
+
+
+// process status
+int
+sys_ps(void)
+{
+  return ps();
+}
