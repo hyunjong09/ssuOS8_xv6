@@ -420,11 +420,12 @@ sched(void)
 }
 
 // Give up the CPU for one scheduling round.
-void
-yield(void)
-{
-  acquire(&ptable.lock);  //DOC: yieldlock
-  myproc()->state = RUNNABLE;
+void yield(void) {
+  struct proc *curproc = myproc();
+  acquire(&ptable.lock);  // 스케줄러 데이터에 대한 동기화
+
+  curproc->state = RUNNABLE;
+  
   // 타임 슬라이스를 모두 소진했는지 확인
   if (++curproc->n_run >= QUANTUM[curproc->queue]) {
     curproc->n_run = 0; // n_run 리셋
@@ -434,9 +435,10 @@ yield(void)
     }
   }
   
-  sched();
+  sched();  // 스케줄러 호출하여 다음 프로세스 실행
   release(&ptable.lock);
 }
+
 
 // A fork child's very first scheduling by scheduler()
 // will swtch here.  "Return" to user space.
