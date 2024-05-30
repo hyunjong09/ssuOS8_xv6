@@ -7,14 +7,9 @@
 #include "proc.h"
 #include "spinlock.h"
 
-#define NQUEUES 3  // 우선순위 큐의 수
-int QUANTUM[NQUEUES] = {10, 20, 40}; // 각 큐에 대한 타임 슬라이스 설정
-
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
-  struct proc *queue[NQUEUES][NPROC];  // MLFQ를 위한 큐 배열
-  int count[NQUEUES];  // 각 큐에 있는 프로세스의 수
 } ptable;
 
 static struct proc *initproc;
@@ -29,11 +24,7 @@ void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
-  for (int i = 0; i < NQUEUES; i++) {
-    ptable.count[i] = 0;  // 각 큐의 카운트를 0으로 초기화
-  }
 }
-
 
 // Must be called with interrupts disabled
 int
@@ -147,7 +138,6 @@ userinit(void)
   p->tf->eflags = FL_IF;
   p->tf->esp = PGSIZE;
   p->tf->eip = 0;  // beginning of initcode.S
-  p->priority = 10; // add field 'ps' commend
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
@@ -209,8 +199,6 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-// copy trace mask
-  np->tracemask = curproc->tracemask;    // 05_17 추가
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -227,7 +215,6 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
-  add_proc_to_queue(np, 0);  // 새 프로세스를 가장 높은 우선순위 큐에 추가
 
   release(&ptable.lock);
 
@@ -261,7 +248,6 @@ exit(void)
   curproc->cwd = 0;
 
   acquire(&ptable.lock);
-  remove_proc_from_queue(curproc, curproc->queue);  // 종료 프로세스를 큐에서 제거
 
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
@@ -333,65 +319,41 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
-void scheduler(void)
+void
+scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-
-  for (;;) {
+  
+  for(;;){
     // Enable interrupts on this processor.
     sti();
 
+    // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for (int i = 0; i < NQUEUES; i++) {
-      for (int j = 0; j < ptable.count[i]; j++) {
-        p = ptable.queue[i][j];
-        if (p->state != RUNNABLE)
-          continue;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
 
-        // Switch to chosen process. It is the process's job
-        // to release ptable.lock and then reacquire it
-        // before jumping back to us.
-        c->proc = p;
-        switchuvm(p);
-        p->state = RUNNING;
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
 
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-
-        // Check if the timeslice is exhausted and downgrade priority if necessary
-        if (++p->n_run > QUANTUM[i]) {
-          p->n_run = 0;
-          if (i < NQUEUES - 1) {
-            remove_proc_from_queue(p, i);
-            add_proc_to_queue(p, i + 1);
-          }
-        }
-      }
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
     }
     release(&ptable.lock);
+
   }
 }
-
-void add_proc_to_queue(struct proc *p, int queue_index) {
-  ptable.queue[queue_index][ptable.count[queue_index]++] = p;
-  p->queue = queue_index;
-}
-
-void remove_proc_from_queue(struct proc *p, int queue_index) {
-  for (int i = 0; i < ptable.count[queue_index]; i++) {
-    if (ptable.queue[queue_index][i] == p) {
-      ptable.queue[queue_index][i] = ptable.queue[queue_index][--ptable.count[queue_index]];
-      break;
-    }
-  }
-}
-
 
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores
@@ -420,25 +382,14 @@ sched(void)
 }
 
 // Give up the CPU for one scheduling round.
-void yield(void) {
-  struct proc *curproc = myproc();
-  acquire(&ptable.lock);  // 스케줄러 데이터에 대한 동기화
-
-  curproc->state = RUNNABLE;
-  
-  // 타임 슬라이스를 모두 소진했는지 확인
-  if (++curproc->n_run >= QUANTUM[curproc->queue]) {
-    curproc->n_run = 0; // n_run 리셋
-    if (curproc->queue < NQUEUES - 1) {
-      remove_proc_from_queue(curproc, curproc->queue); // 현재 큐에서 제거
-      add_proc_to_queue(curproc, curproc->queue + 1);  // 낮은 우선순위 큐에 추가
-    }
-  }
-  
-  sched();  // 스케줄러 호출하여 다음 프로세스 실행
+void
+yield(void)
+{
+  acquire(&ptable.lock);  //DOC: yieldlock
+  myproc()->state = RUNNABLE;
+  sched();
   release(&ptable.lock);
 }
-
 
 // A fork child's very first scheduling by scheduler()
 // will swtch here.  "Return" to user space.
@@ -484,9 +435,6 @@ sleep(void *chan, struct spinlock *lk)
     acquire(&ptable.lock);  //DOC: sleeplock1
     release(lk);
   }
-  // 큐에서 제거
-  remove_proc_from_queue(p, p->queue);
-
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
@@ -512,10 +460,8 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if (p->state == SLEEPING && p->chan == chan) {
+    if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
-      add_proc_to_queue(p, 0);  // 깨어난 프로세스를 가장 높은 우선순위 큐에 추가
-    }
 }
 
 // Wake up all processes sleeping on chan.
@@ -585,28 +531,4 @@ procdump(void)
     }
     cprintf("\n");
   }
-}
-
-int
-ps(void) {
-    struct proc *p;
-    char *state;
-
-    acquire(&ptable.lock);
-    cprintf("pid \t name \t state \t\tpriority\n");
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-        if (p->state == SLEEPING)
-            state = "SLEEPING";
-        else if (p->state == RUNNABLE)
-            state = "RUNNABLE";
-        else if (p->state == RUNNING)
-            state = "RUNNING";
-        else
-            state = (char*)0;
-
-        if (state)
-            cprintf("%d \t %s \t %s \t%d\t\n", p->pid, p->name, state, p->priority);
-    }
-    release(&ptable.lock);
-    return 0;
 }
