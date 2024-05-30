@@ -159,10 +159,9 @@ char *syscallnames[] = {
 [SYS_memsize]   "memsize",
 [SYS_trace]   "trace",
 [SYS_ps]      "sys_ps",
-[SYS_uptime]   "uptime"
 };
 
-//new syscall 함수
+
 void
 syscall(void)
 {
@@ -172,29 +171,9 @@ syscall(void)
   num = curproc->tf->eax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     curproc->tf->eax = syscalls[num]();
-    // trace
-    if(curproc->tracemask >> num){
-      cprintf("syscall traced: pid = %d, syscall = %s, %d returned\n", curproc->pid, syscallnames[num], curproc->tf->eax);
-    }
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             curproc->pid, curproc->name, num);
     curproc->tf->eax = -1;
   }
 }
-/* 기존 코드
-void
-syscall(void)
-{
-  int num;
-  struct proc *curproc = myproc();
-
-  num = curproc->tf->eax;
-  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    curproc->tf->eax = syscalls[num]();
-  } else {
-    cprintf("%d %s: unknown sys call %d\n",
-            curproc->pid, curproc->name, num);
-    curproc->tf->eax = -1;
-  }
-}*/
