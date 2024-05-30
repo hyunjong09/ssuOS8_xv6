@@ -105,6 +105,7 @@ extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_memsize(void);   // 새로운 시스템 호출 추가
 extern int sys_trace(void); // 추가
+extern int sys_ps(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -130,6 +131,7 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_memsize]   sys_memsize,   // 새로운 시스템 호출 추가
 [SYS_trace]   sys_trace, // 추가
+[SYS_ps]   sys_ps, // 추가
 };
 
 char *syscallnames[] = {
@@ -156,6 +158,7 @@ char *syscallnames[] = {
 [SYS_close]   "close",
 [SYS_memsize]   "memsize",
 [SYS_trace]   "trace",
+[SYS_ps]   "sys_ps",
 };
 
 
