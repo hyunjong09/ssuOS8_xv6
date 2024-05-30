@@ -121,6 +121,9 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 int             ps(void);
+int				getlev(void);
+int				setpriority(int, int);
+void			monopolize(int);
 // swtch.S
 void            swtch(struct context**, struct context*);
 

@@ -20,6 +20,14 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+extern int ticks_FCFS;
+
+#ifdef MLFQ_SCHED
+extern int ticks_L0;
+extern int ticks_L1;
+extern int ticks_boost;
+#endif
+
 void
 pinit(void)
 {
@@ -89,7 +97,17 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  #ifdef MULTILEVEL_SCHED
+  if((p->pid)%2 == 0)
+	  p->queueLevel = 0; // Round Robin queue
+  else
+	  p->queueLevel = 1; // FCFS queue
+#elif MLFQ_SCHED
+  p->queueLevel2 = 0;
+  p->priority2 = 0;
+#endif
   release(&ptable.lock);
+
 
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
@@ -267,6 +285,95 @@ exit(void)
   panic("zombie exit");
 }
 
+int
+getlev(void)
+{
+#ifdef MLFQ_SCHED
+	return (myproc()->queueLevel2)%100;
+#else
+	return 0;
+#endif
+}
+
+int
+sys_getlev(void)
+{
+	return getlev();
+}
+
+int
+setpriority(int pid, int priority)
+{
+#ifdef MLFQ_SCHED
+	struct proc *p;
+	if(priority < 0 || priority > 10)
+		return -2;
+
+	acquire(&ptable.lock);
+	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+		if(pid == p->pid) {
+			p->priority2 = priority;
+			release(&ptable.lock);
+			return 0;
+		}
+	}
+
+	release(&ptable.lock);
+	return -1;
+#else
+	return 0;
+#endif
+}
+
+int
+sys_setpriority(void)
+{
+	int *n1;
+	int *n2;
+	int a = 0, b = 0;
+	n1 = &a;
+	n2 = &b;
+
+	if(argint(0, n1) < 0)
+		return -1;
+	if(argint(1, n2) < 0)
+		return -1;
+	return setpriority(*n1, *n2);
+}
+
+void
+monopolize(int password)
+{
+#ifdef MLFQ_SCHED
+	if(password != 2024) {
+		myproc()->killed = 1;
+		yield();
+	}
+
+	if(myproc()->queueLevel2 >= 100) { // already monopolize state
+		myproc()->queueLevel2 = 0; // go L0 queue
+		myproc()->priority2 = 0;
+	}
+	else {
+		myproc()->queueLevel2 += 100;
+	}
+#else
+	// nothing to do
+#endif
+}
+
+int
+sys_monopolize(void)
+{
+	int *n;
+	int a = 0;
+	n = &a;
+	if(argint(0, n) < 0)
+		return -1;
+	monopolize(*n);
+	return 0;
+}
+
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
 int
@@ -324,15 +431,171 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
+ 
+#ifdef FCFS_SCHED
+  struct proc *minPid;
+#elif MULTILEVEL_SCHED
+  struct proc *targetP;
+#elif MLFQ_SCHED
+  struct proc *targetP2;
+#endif
+
+
+#ifdef MLFQ_SCHED
+  ticks_L0 = 4;
+  ticks_L1 = 8;
+#endif
+
   c->proc = 0;
-  
+ 
+  ticks_FCFS=0;
+
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+
+#ifdef FCFS_SCHED
+	minPid = 0;
+	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+		if(p->state != RUNNABLE)
+			continue;
+
+		if(minPid == 0) { // inital runnable
+			minPid=p;
+		}
+		else { // update
+			if(minPid->pid > p->pid)
+				minPid = p;
+		}
+	}
+	
+	if(minPid !=0) { // execute minPid (change p to minPid)
+		c->proc = minPid;
+		switchuvm(minPid);
+		minPid->state = RUNNING;
+		swtch(&(c->scheduler), minPid->context);
+		switchkvm();
+		c->proc = 0;
+	}
+#elif MULTILEVEL_SCHED
+	targetP = 0;
+	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+		if(p->state != RUNNABLE || p->queueLevel != 0) // check RR queue
+			continue;
+		targetP = p;
+	
+		c->proc = p;
+		switchuvm(p);
+		p->state = RUNNING;
+
+		swtch(&(c->scheduler), p->context);
+		switchkvm();
+	
+		c->proc = 0;
+	}
+
+	if(targetP == 0) { // check FCFS queue if no RUNNABLE in RR queue
+		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+			if(p->state != RUNNABLE || p->queueLevel != 1)
+				continue;
+			
+			if(targetP == 0) { // initial runnable
+				targetP=p;
+			}
+			else { // update minPid
+				if(targetP->pid > p->pid)
+					targetP = p;
+			}
+		}
+	
+
+		if(targetP != 0) { // execute targetP (change p to targetP)
+			c->proc = targetP;
+			switchuvm(targetP);
+			targetP->state = RUNNING;
+			swtch(&(c->scheduler), targetP->context);
+			switchkvm();
+			c->proc = 0;
+		}
+	}
+#elif MLFQ_SCHED
+	if(ticks_boost <= 0) { // priority2 boost before select process
+		ticks_boost = 200;
+		
+		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+			if(p->queueLevel2 == 101) // maintain monopolize status but change L0 after remove monopolize status
+				p->queueLevel2 = 100;
+			if(p->queueLevel2 == 1) // L1 to L0
+				p->queueLevel2 = 0;
+			p->priority2 = 0;
+		}
+	}
+	
+	
+	targetP2 = 0;
+	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) { // first check monopolized process
+		if(p->state != RUNNABLE || p->queueLevel2 < 100)
+			continue;
+	}
+
+	if(targetP2 != 0) { 
+		c->proc = targetP2;
+		switchuvm(targetP2);
+		targetP2->state = RUNNING;
+		swtch(&(c->scheduler), targetP2->context);
+		switchkvm();
+		c->proc = 0;
+	}
+	
+	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+		if(p->state != RUNNABLE || p->queueLevel2 != 0) // check L0
+			continue;
+		targetP2 = p;
+
+		c->proc = p;
+		switchuvm(p);
+		p->state = RUNNING;
+
+		swtch(&(c->scheduler), p->context);
+		switchkvm();
+
+		c->proc = 0;
+	}
+
+	if(targetP2 == 0) { // check L1
+		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+			if(p->state != RUNNABLE || p->queueLevel2 != 1)
+				continue;
+
+			if(targetP2 == 0) { // initial runnable
+				targetP2 = p;
+			}
+			else { // update targetP2
+				if(targetP2->priority2 < p->priority2) {
+					targetP2 = p;
+				}
+				else if(targetP2->priority2 == p->priority2 && targetP2->pid > p->pid) {
+					targetP2 = p;
+				}
+			}
+		}
+
+		if(targetP2 != 0) {
+			c->proc = targetP2;
+			switchuvm(targetP2);
+			targetP2->state = RUNNING;
+			swtch(&(c->scheduler), targetP2->context);
+			switchkvm();
+			c->proc = 0;
+		}
+	}
+
+
+#else
+	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
 
@@ -350,6 +613,7 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       c->proc = 0;
     }
+#endif
     release(&ptable.lock);
 
   }
@@ -380,6 +644,14 @@ sched(void)
   swtch(&p->context, mycpu()->scheduler);
   mycpu()->intena = intena;
 }
+
+int
+sys_yield(void)
+{
+	yield();
+	return 0;
+}
+
 
 // Give up the CPU for one scheduling round.
 void

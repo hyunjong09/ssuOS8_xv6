@@ -34,6 +34,8 @@ struct context {
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+int sys_yield(void);
+
 // Per-process state
 struct proc {
   uint sz;                     // Size of process memory (bytes)
@@ -51,6 +53,12 @@ struct proc {
   char name[16];               // Process name (debugging)
   int tracemask;    // add field 05_17 tracemask
   int priority;     // add 05_19 ps commend
+#ifdef MULTILEVEL_SCHED
+  int queueLevel;
+#elif MLFQ_SCHED
+  int queueLevel2;
+  int priority2;
+#endif
 };
 
 // Process memory is laid out contiguously, low addresses first:

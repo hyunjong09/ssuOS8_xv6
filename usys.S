@@ -32,3 +32,7 @@ SYSCALL(uptime)
 SYSCALL(memsize)   // 새로운 시스템 호출 추가
 SYSCALL(trace)     // 새로운 시스템 호출 추가
 SYSCALL(ps)
+SYSCALL(yield)
+SYSCALL(getlev)
+SYSCALL(setpriority)
+SYSCALL(monopolize)

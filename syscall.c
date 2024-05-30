@@ -106,6 +106,10 @@ extern int sys_uptime(void);
 extern int sys_memsize(void);   // 새로운 시스템 호출 추가
 extern int sys_trace(void); // 추가
 extern int sys_ps(void);
+extern int sys_yield(void);
+extern int sys_getlev(void);
+extern int sys_setpriority(void);
+extern int sys_monopolize(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -132,6 +136,10 @@ static int (*syscalls[])(void) = {
 [SYS_memsize]   sys_memsize,   // 새로운 시스템 호출 추가
 [SYS_trace]   sys_trace, // 추가
 [SYS_ps]   sys_ps, // 추가
+[SYS_yield]   sys_yield,
+[SYS_getlev]  sys_getlev,
+[SYS_setpriority] sys_setpriority,
+[SYS_monopolize] sys_monopolize,
 };
 
 char *syscallnames[] = {

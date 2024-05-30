@@ -25,7 +25,12 @@ int sleep(int);
 int uptime(void);
 int memsize(void);  // 새로운 시스템 호출 추가
 int trace(int);   // 새로운 시스템 호출 추가
-int ps(void);       // ps 커맨드드
+int ps(void);       // ps 커맨드
+void yield(void);
+int getlev(void);
+int setpriority(int, int);
+void monopolize(int);
+
 
 
 // ulib.c
