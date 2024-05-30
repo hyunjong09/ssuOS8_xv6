@@ -22,4 +22,3 @@
 #define SYS_close  21
 #define SYS_memsize 22   // 새로운 시스템 호출 번호 추가
 #define SYS_trace 23     // 추가
-#define SYS_ps     24

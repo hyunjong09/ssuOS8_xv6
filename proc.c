@@ -138,7 +138,7 @@ userinit(void)
   p->tf->eflags = FL_IF;
   p->tf->esp = PGSIZE;
   p->tf->eip = 0;  // beginning of initcode.S
-
+  p->priority = 10; // add field 'ps' commend
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
@@ -531,4 +531,28 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+int
+ps(void) {
+    struct proc *p;
+    char *state;
+
+    acquire(&ptable.lock);
+    cprintf("pid \t name \t state \t\tpriority\n");
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if (p->state == SLEEPING)
+            state = "SLEEPING";
+        else if (p->state == RUNNABLE)
+            state = "RUNNABLE";
+        else if (p->state == RUNNING)
+            state = "RUNNING";
+        else
+            state = (char*)0;
+
+        if (state)
+            cprintf("%d \t %s \t %s \t%d\t\n", p->pid, p->name, state, p->priority);
+    }
+    release(&ptable.lock);
+    return 0;
 }
