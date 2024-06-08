@@ -110,6 +110,7 @@ extern int sys_yield(void);
 extern int sys_getlev(void);
 extern int sys_setpriority(void);
 extern int sys_monopolize(void);
+extern int sys_getNumFreePages(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -140,6 +141,7 @@ static int (*syscalls[])(void) = {
 [SYS_getlev]  sys_getlev,
 [SYS_setpriority] sys_setpriority,
 [SYS_monopolize] sys_monopolize,
+[SYS_getNumFreePages] sys_getNumFreePages,
 };
 
 char *syscallnames[] = {
