@@ -394,13 +394,13 @@ void pagefault(void) {
 
   // va가 커널 주소 공간에 속하는지 검사합니다.
   if (va >= KERNBASE) {
-    panic("Wrong VA pagefault");
+    cprintf("Error: Wrong VA pagefault at VA: %x\n", va);
     return;
   }
 
   pte = walkpgdir(myproc()->pgdir, (void*)va, 0);
   if (pte == 0 || !(*pte & PTE_P)) {
-    panic("Page table entry not found");
+    cprintf("Error: Page table entry not found for VA: %x\n", va);
     return;
   }
 
@@ -411,7 +411,7 @@ void pagefault(void) {
     char* mem;
     mem = kalloc();
     if (mem == 0) {
-      panic("Memory allocation failed in pagefault");
+      cprintf("Error: Memory allocation failed in pagefault for VA: %x\n", va);
       return;
     }
     memmove(mem, (char*)P2V(pa), PGSIZE);
