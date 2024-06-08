@@ -193,7 +193,8 @@ UPROGS=\
 	_fcfs_test\
 	_ml_test\
 	_mlfq_test\
-	#5_15 edit
+	_file_test\
+	#06_08 edit
 	
 
 fs.img: mkfs README list.txt $(UPROGS)
