@@ -169,6 +169,7 @@ char *syscallnames[] = {
 [SYS_memsize]   "memsize",
 [SYS_trace]   "trace",
 [SYS_ps]   "sys_ps",
+[SYS_getNumFreePages] "sys_getNumFreePages",
 };
 
 
