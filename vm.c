@@ -386,21 +386,19 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 }
 void pagefault(void) {
   pte_t *pte;
-  uint rc, pa;
-  uint va; // unsigned int로 선언
+  uint rc, pa, va;
 
   va = rcr2(); // faulting virtual address
-  cprintf("Page fault at VA: %x\n", va);
 
-  // va가 커널 주소 공간에 속하는지 검사합니다.
+  // va가 음수가 될 수 없으므로, 올바른 주소 범위를 검사합니다.
   if (va >= KERNBASE) {
-    cprintf("Error: Wrong VA pagefault at VA: %x\n", va);
+    cprintf("Wrong VA pagefault");
     return;
   }
 
   pte = walkpgdir(myproc()->pgdir, (void*)va, 0);
   if (pte == 0 || !(*pte & PTE_P)) {
-    cprintf("Error: Page table entry not found for VA: %x\n", va);
+    panic("Page table entry not found");
     return;
   }
 
@@ -411,7 +409,7 @@ void pagefault(void) {
     char* mem;
     mem = kalloc();
     if (mem == 0) {
-      cprintf("Error: Memory allocation failed in pagefault for VA: %x\n", va);
+      panic("Memory allocation failed in pagefault");
       return;
     }
     memmove(mem, (char*)P2V(pa), PGSIZE);
