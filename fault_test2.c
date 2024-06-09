@@ -3,21 +3,16 @@
 #include "user.h"
 
 void allocate_new_page_test() {
-    char *heap_pointer;
-    int i;
+    char *stack_pointer;
 
     printf(1, "Starting allocate new page test\n");
 
-    // 현재 힙 포인터를 가져옵니다.
-    heap_pointer = (char*)sbrk(0);
+    // 현재 스택 포인터를 가져옵니다.
+    stack_pointer = (char*)sbrk(0);
 
-    // sbrk를 사용하여 새로운 메모리를 할당합니다.
+    // 스택 포인터 바로 아래의 페이지에 접근하여 페이지 폴트를 유도합니다.
     // 이는 페이지 폴트를 발생시키고 새로운 페이지를 할당하게 합니다.
-    sbrk(2 * 4096); // 8KB 할당
-
-    // 할당된 메모리의 끝부분에 접근하여 페이지 폴트를 유도합니다.
-    // 힙 포인터에서 8KB 위치에 접근하여 페이지 폴트를 유도합니다.
-    char *fault_address = heap_pointer + 2 * 4096 - 1;
+    char *fault_address = stack_pointer - 2 * 4096; // 현재 스택 포인터보다 8KB 아래
 
     printf(1, "Accessing address: %p to cause page fault\n", fault_address);
 
