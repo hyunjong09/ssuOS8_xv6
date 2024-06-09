@@ -388,7 +388,6 @@ static char* tmp(void *va) {
 void pagefault(void)
 {
   char *mem;
-  pte_t *pte;
   uint addr = rcr2(); // Faulting address
 
   // Check if the faulting address is within a valid stack range
@@ -412,7 +411,6 @@ void pagefault(void)
     myproc()->killed = 1;
   }
 }
-
 
 //PAGEBREAK!
 // Map user virtual address to kernel address.
