@@ -392,7 +392,7 @@ void pagefault(void) {
 
   // va가 음수가 될 수 없으므로, 올바른 주소 범위를 검사합니다.
   if (va >= KERNBASE) {
-    cprintf("Wrong VA pagefault");
+    panic("Wrong VA pagefault");
     return;
   }
 
