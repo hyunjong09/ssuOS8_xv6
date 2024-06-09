@@ -3,7 +3,8 @@
 #include "user.h"
 #include "fcntl.h"
 #include "memlayout.h"
-void test_address(char *addr);
+
+void test_address(char *addr, char value);
 
 int
 main(int argc, char *argv[])
@@ -14,27 +15,27 @@ main(int argc, char *argv[])
 
   // 유효한 주소 테스트
   printf(1, "Testing valid address:\n");
-  test_address(valid_addr);
+  test_address(valid_addr, 'V');
 
   // 페이지 폴트를 유발하는 유효한 주소 테스트
   printf(1, "Testing page fault address:\n");
-  test_address(page_fault_addr);
+  test_address(page_fault_addr, 'F');
 
   // 유효하지 않은 주소 테스트
   printf(1, "Testing invalid address:\n");
-  test_address(invalid_addr);
+  test_address(invalid_addr, 'I');
 
   exit();
 }
 
-void test_address(char *addr)
+void test_address(char *addr, char value)
 {
   printf(1, "Accessing address: 0x%x\n", addr);
 
   // 주소에 접근하여 페이지 폴트를 유발하거나 정상적으로 접근합니다.
-  *addr = 'A';
+  *addr = value;
 
   // 페이지 폴트가 처리된 후 정상적으로 실행됩니다.
   printf(1, "Value at address: %c\n", *addr);
-  printf(1, "This line should be printed.\n");
+  printf(1, "If This line is printed Memory allocate Success.\n\n");
 }
