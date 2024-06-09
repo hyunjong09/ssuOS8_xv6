@@ -30,7 +30,6 @@ void yield(void);
 int getlev(void);
 int setpriority(int, int);
 void monopolize(int);
-int getNumFreePages(void);
 
 
 

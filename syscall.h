@@ -26,5 +26,4 @@
 #define SYS_yield 25
 #define SYS_getlev 26
 #define SYS_setpriority 27
-#define SYS_monopolize 28
-#define SYS_getNumFreePages 29
+#define SYS_monopolize 28z

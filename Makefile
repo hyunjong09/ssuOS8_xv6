@@ -194,7 +194,6 @@ UPROGS=\
 	_ml_test\
 	_mlfq_test\
 	_file_test\
-	_copy_on_write_test\
 	#06_08 edit
 	
 
@@ -273,7 +272,6 @@ EXTRA=\
 	hcat.c\
 	SSU_OS_login.c\
 	memsizetest.c\
-	copy_on_write_test.c\
 	trace.c
 	#5_15 edit.
 
