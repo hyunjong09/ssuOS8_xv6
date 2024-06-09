@@ -4,26 +4,43 @@
 
 #define PGSIZE 4096
 
-void
-test_pagefault_handler()
-{
-  char *stack;
-  int i;
+void test_page_fault() {
+    // 페이지 폴트를 유발하기 위해 큰 배열 할당 및 접근
+    char *buffer = (char*)sbrk(PGSIZE * 10); // 10 페이지 할당
+    if (buffer == (char*)-1) {
+        printf(1, "sbrk failed\n");
+        return;
+    }
 
-  // 스택의 하위 주소로 접근하여 페이지 폴트를 유도합니다.
-  for(i = 1; i <= 20; i++) {
-    stack = (char *) (4096 * 1024 - (i * PGSIZE)); // 4MB 영역의 상위 주소부터 접근
-    printf(1, "Accessing stack address: %p\n", stack);
-    *stack = 0; // 페이지 폴트 유도
-    printf(1, "Successfully accessed address: %p\n", stack);
-  }
+    printf(1, "Buffer allocated at address: %p\n", buffer);
+    printf(1, "Testing page fault handling...\n");
 
-  printf(1, "Test completed.\n");
+    for (int i = 0; i < PGSIZE * 10; i += PGSIZE) {
+        buffer[i] = i / PGSIZE;
+    }
+
+    printf(1, "Page fault test completed successfully\n");
 }
 
-int
-main(int argc, char *argv[])
-{
-  test_pagefault_handler();
-  exit();
+void test_stack_allocation() {
+    char dummy;
+    uint sp = (uint)&dummy;
+    uint new_sp = sp - (PGSIZE * 4);  // 4 페이지 크기만큼 아래로 설정
+
+    printf(1, "Current stack pointer: 0x%x\n", sp);
+    printf(1, "Testing stack allocation...\n");
+
+    // 스택을 확장하여 페이지 폴트를 유발
+    for (char *ptr = (char*)(new_sp + PGSIZE); ptr < (char*)sp; ptr += PGSIZE) {
+        printf(1, "Accessing stack address: %p\n", ptr);
+        *(volatile char*)ptr = 0; // volatile을 사용하여 최적화 방지
+    }
+
+    printf(1, "Stack allocation test completed successfully\n");
+}
+
+int main(void) {
+    test_page_fault();
+    test_stack_allocation();
+    exit();
 }
