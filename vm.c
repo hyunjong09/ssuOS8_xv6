@@ -391,7 +391,8 @@ void pagefault(void) {
   va = rcr2(); // faulting virtual address
 
   // va가 음수가 될 수 없으므로, 올바른 주소 범위를 검사합니다.
-  if (va >= KERNBASE) {
+  if (va >= KERNBASE || va < 0) {
+    cprintf("Wrong VA pagefault: va = %x, proc = %s\n", va, myproc()->name);
     panic("Wrong VA pagefault");
     return;
   }
