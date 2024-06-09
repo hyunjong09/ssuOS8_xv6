@@ -5,7 +5,7 @@
 
 void allocate_new_page_test() {
     char *stack_pointer;
-    char dummy[PGSIZE * 4];  // 스택을 확장하기 위해 더미 배열 선언
+    volatile char dummy[PGSIZE * 4];  // 스택을 확장하기 위해 더미 배열 선언
 
     printf(1, "Starting allocate new page test\n");
 
