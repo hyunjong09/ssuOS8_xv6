@@ -412,7 +412,17 @@ void pagefault(void)
   memset(mem, 0, PGSIZE);
 
   // 새로운 페이지를 페이지 테이블에 매핑합니다.
+  if (mappages(curproc->pgdir, (char*)PGROUNDDOWN(addr), PGSIZE, V2P(mem), PTE_W | PTE_U) < 0) {
+    cprintf("pagefault: mappages failed\n");
+    kfree(mem);
+    curproc->killed = 1;
+    return;
+  }
 
+  // 페이지 테이블을 다시 로드합니다.
+  lcr3(V2P(curproc->pgdir));
+  cprintf("[Pagefault] Allocate new page at address: 0x%x\n", PGROUNDDOWN(addr));
+}
 
 //PAGEBREAK!
 // Map user virtual address to kernel address.
