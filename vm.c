@@ -388,49 +388,45 @@ void pagefault(void)
 {
   char* mem;
   pte_t* pte;
-  uint addr = rcr2();
+  uint addr = rcr2();  // 페이지 폴트가 발생한 주소를 가져옵니다.
 
-  // 조건: 스택 포인터가 2페이지 이상이며, 페이지 폴트가 스택 범위 내에서 발생한 경우
-  if ((myproc()->tf->esp > PGSIZE * 2) && (myproc()->tf->esp > addr && addr > myproc()->tf->esp - PGSIZE)) {
-    // 페이지 테이블 항목을 가져옵니다.
-    pte = walkpgdir(myproc()->pgdir, tmp((char*)((myproc()->tf->esp) - PGSIZE)), 0);
-
-    if (pte == 0) {
-      cprintf("pagefault: walkpgdir failed\n");
-      myproc()->killed = 1;
-      return;
-    }
-
-    // 페이지를 비활성화합니다.
-    *pte &= ~(PTE_P);
-
-    // 새로운 물리 페이지를 할당합니다.
-    mem = kalloc();
-    if (mem == 0) {
-      cprintf("pagefault: kalloc failed\n");
-      myproc()->killed = 1;
-      return;
-    }
-    memset(mem, 0, PGSIZE);
-
-    // 새로운 페이지를 페이지 테이블에 매핑합니다.
-    if (mappages(myproc()->pgdir, (char*)((myproc()->tf->esp) - PGSIZE), PGSIZE, V2P(mem), PTE_W | PTE_U) < 0) {
-      cprintf("pagefault: mappages failed\n");
-      kfree(mem);
-      myproc()->killed = 1;
-      return;
-    }
-
-    // 페이지 테이블을 다시 로드합니다.
-    lcr3(V2P(myproc()->pgdir));
-    cprintf("[Pagefault] Allocate new page!\n");
-  }
-  else {
-    // 유효하지 않은 접근인 경우
-    cprintf("[Pagefault] Invalid access at address: 0x%x\n", addr); 
+  // 페이지 폴트가 유효한 사용자 주소 범위 내에서 발생했는지 확인합니다.
+  if (addr >= myproc()->sz || addr >= KERNBASE) {
+    cprintf("[Pagefault] Invalid access at address: 0x%x\n", addr);
     myproc()->killed = 1;
+    return;
   }
-}
+
+  // 페이지 테이블 항목을 가져옵니다.
+  pte = walkpgdir(myproc()->pgdir, (char*)PGROUNDDOWN(addr), 0);
+
+  if (pte == 0) {
+    cprintf("pagefault: walkpgdir failed\n");
+    myproc()->killed = 1;
+    return;
+  }
+
+  // 새로운 물리 페이지를 할당합니다.
+  mem = kalloc();
+  if (mem == 0) {
+    cprintf("pagefault: kalloc failed\n");
+    myproc()->killed = 1;
+    return;
+  }
+  memset(mem, 0, PGSIZE);
+
+  // 새로운 페이지를 페이지 테이블에 매핑합니다.
+  if (mappages(myproc()->pgdir, (char*)PGROUNDDOWN(addr), PGSIZE, V2P(mem), PTE_W | PTE_U) < 0) {
+    cprintf("pagefault: mappages failed\n");
+    kfree(mem);
+    myproc()->killed = 1;
+    return;
+  }
+
+  // 페이지 테이블을 다시 로드합니다.
+  lcr3(V2P(myproc()->pgdir));
+  cprintf("[Pagefault] Allocate new page at address: 0x%x\n
+
 
 //PAGEBREAK!
 // Map user virtual address to kernel address.
