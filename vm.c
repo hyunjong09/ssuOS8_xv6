@@ -385,28 +385,33 @@ static char* tmp(void *va) {
   return (char*)PGROUNDDOWN((uint)va);
 }
 
-void pagefault(void)
-{
-  char* mem;
-  pte_t* pte;
-  uint addr = rcr2();
-  if((myproc()->tf->esp > PGSIZE*2) && (myproc()->tf->esp > addr && addr > myproc()->tf->esp - PGSIZE)) {
-  // 1 physical page alloc
-    pte = walkpgdir(myproc()->pgdir, tmp((char*)((myproc()->tf->esp) - PGSIZE)), 0);
-    *pte &= ~(PTE_P);
-    mem = kalloc();
-    memset(mem, 0, PGSIZE);
-    if(mappages(myproc()->pgdir, (char*)((myproc()->tf->esp) - PGSIZE), PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
-      cprintf("allocuvm out of memory (2)\n");
-      kfree(mem);
+void pagefault(uint err_code) {
+    struct proc *curproc = myproc();
+    uint cr2 = rcr2(); // faulting address
+
+    // 페이지 폴트가 발생한 주소가 유효한지 확인
+    if (cr2 >= KERNBASE || cr2 >= curproc->sz) {
+        cprintf("pid %d %s: page fault at 0x%x\n", curproc->pid, curproc->name, cr2);
+        curproc->killed = 1;
+        return;
     }
-    lcr3(V2P(myproc()->pgdir));
-    cprintf("[Pagefault] Allocate new page!\n");
-  }
-  else {
-    cprintf("[Pagefault] Invalid access!\n"); 
-    myproc()->killed = 1;
-  }
+
+    // 새로운 페이지를 할당
+    char *mem = kalloc();
+    if (mem == 0) {
+        cprintf("pid %d %s: out of memory\n", curproc->pid, curproc->name);
+        curproc->killed = 1;
+        return;
+    }
+    memset(mem, 0, PGSIZE);
+
+    // 페이지 테이블을 업데이트
+    if (mappages(curproc->pgdir, (char*)PGROUNDDOWN(cr2), PGSIZE, V2P(mem), PTE_W | PTE_U) < 0) {
+        cprintf("pid %d %s: page table update failed\n", curproc->pid, curproc->name);
+        kfree(mem);
+        curproc->killed = 1;
+        return;
+    }
 }
 //PAGEBREAK!
 // Map user virtual address to kernel address.
