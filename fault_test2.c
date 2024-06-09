@@ -1,6 +1,7 @@
 #include "types.h"
 #include "stat.h"
 #include "user.h"
+#include "memlayout.h"  // PGSIZE를 포함하기 위해 추가
 
 void allocate_new_page_test() {
     char *stack_pointer;
