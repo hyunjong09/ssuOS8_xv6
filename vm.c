@@ -380,10 +380,6 @@ bad:
 }
  //PAGEFAULT
 
-static char* tmp(void *va) {
-
-  return (char*)PGROUNDDOWN((uint)va);
-}
 
 void pagefault(uint err_code) {
     struct proc *curproc = myproc();
