@@ -384,7 +384,6 @@ static char* tmp(void *va) {
 
   return (char*)PGROUNDDOWN((uint)va);
 }
-
 void pagefault(void)
 {
   char* mem;
@@ -392,21 +391,34 @@ void pagefault(void)
   uint addr = rcr2();
 
   // 조건: 스택 포인터가 2페이지 이상이며, 페이지 폴트가 스택 범위 내에서 발생한 경우
-  if((myproc()->tf->esp > PGSIZE*2) && (myproc()->tf->esp > addr && addr > myproc()->tf->esp - PGSIZE)) {
+  if ((myproc()->tf->esp > PGSIZE * 2) && (myproc()->tf->esp > addr && addr > myproc()->tf->esp - PGSIZE)) {
     // 페이지 테이블 항목을 가져옵니다.
     pte = walkpgdir(myproc()->pgdir, tmp((char*)((myproc()->tf->esp) - PGSIZE)), 0);
-    
+
+    if (pte == 0) {
+      cprintf("pagefault: walkpgdir failed\n");
+      myproc()->killed = 1;
+      return;
+    }
+
     // 페이지를 비활성화합니다.
     *pte &= ~(PTE_P);
 
     // 새로운 물리 페이지를 할당합니다.
     mem = kalloc();
+    if (mem == 0) {
+      cprintf("pagefault: kalloc failed\n");
+      myproc()->killed = 1;
+      return;
+    }
     memset(mem, 0, PGSIZE);
 
     // 새로운 페이지를 페이지 테이블에 매핑합니다.
-    if(mappages(myproc()->pgdir, (char*)((myproc()->tf->esp) - PGSIZE), PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
-      cprintf("allocuvm out of memory (2)\n");
+    if (mappages(myproc()->pgdir, (char*)((myproc()->tf->esp) - PGSIZE), PGSIZE, V2P(mem), PTE_W | PTE_U) < 0) {
+      cprintf("pagefault: mappages failed\n");
       kfree(mem);
+      myproc()->killed = 1;
+      return;
     }
 
     // 페이지 테이블을 다시 로드합니다.
@@ -415,7 +427,7 @@ void pagefault(void)
   }
   else {
     // 유효하지 않은 접근인 경우
-    cprintf("[Pagefault] Invalid access!\n"); 
+    cprintf("[Pagefault] Invalid access at address: 0x%x\n", addr); 
     myproc()->killed = 1;
   }
 }
