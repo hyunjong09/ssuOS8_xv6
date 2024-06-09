@@ -379,7 +379,6 @@ bad:
   return 0;
 }
  //PAGEFAULT
-
 void pagefault(void)
 {
   char* mem;
@@ -387,7 +386,7 @@ void pagefault(void)
   uint addr = rcr2();  // 페이지 폴트가 발생한 주소를 가져옵니다.
   struct proc *curproc = myproc();
 
-  // 스택 포인터와 비교하여 주소가 유효한지 확인
+  // 유효한 사용자 주소 범위 내에서 발생한 폴트인지 확인
   if (addr >= KERNBASE || addr < curproc->sz || addr < (curproc->tf->esp - PGSIZE * 4)) {
     cprintf("[Pagefault] Invalid access at address: 0x%x\n", addr);
     curproc->killed = 1;
@@ -413,17 +412,6 @@ void pagefault(void)
   memset(mem, 0, PGSIZE);
 
   // 새로운 페이지를 페이지 테이블에 매핑합니다.
-  if (mappages(curproc->pgdir, (char*)PGROUNDDOWN(addr), PGSIZE, V2P(mem), PTE_W | PTE_U) < 0) {
-    cprintf("pagefault: mappages failed\n");
-    kfree(mem);
-    curproc->killed = 1;
-    return;
-  }
-
-  // 페이지 테이블을 다시 로드합니다.
-  lcr3(V2P(curproc->pgdir));
-  cprintf("[Pagefault] Allocate new page at address: 0x%x\n", PGROUNDDOWN(addr));
-}
 
 
 //PAGEBREAK!

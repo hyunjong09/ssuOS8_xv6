@@ -12,7 +12,7 @@ void allocate_new_page_test() {
     char *stack_pointer = (char*) &dummy[PGSIZE * 4 - 1];
 
     // 스택 포인터를 조금 낮춰서 페이지 폴트를 유도합니다.
-    char *fault_address = stack_pointer - 2 * PGSIZE; // 현재 스택 포인터보다 8KB 아래
+    char *fault_address = stack_pointer - 3 * PGSIZE; // 현재 스택 포인터보다 12KB 아래
 
     printf(1, "Accessing address: %p to cause page fault\n", fault_address);
 
