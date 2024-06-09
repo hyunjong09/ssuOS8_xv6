@@ -175,7 +175,7 @@ void            uartputc(int);
 
 // vm.c
 int allocuvm_stack(pde_t*, uint, uint);
-void            pagefault(uint);
+void            pagefault(void);
 void            seginit(void);
 void            kvmalloc(void);
 pde_t*          setupkvm(void);
