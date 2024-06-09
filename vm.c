@@ -385,43 +385,37 @@ static char* tmp(void *va) {
   return (char*)PGROUNDDOWN((uint)va);
 }
 
-void pagefault(void)
-{
-  char* mem;
-  pte_t* pte;
-  uint addr = rcr2();
-  uint stackbase;
+void pagefault(void) {
+    char* mem;
+    pte_t* pte;
+    uint addr = rcr2();
+    uint stackbase;
 
     // 현재 스택 포인터 가져오기
-  stackbase = PGROUNDDOWN(myproc()->tf->esp);
+    stackbase = PGROUNDDOWN(myproc()->tf->esp);
 
-  if((myproc()->tf->esp > PGSIZE*2) && (myproc()->tf->esp > addr && addr > myproc()->tf->esp - PGSIZE)) {
-  // 1 physical page alloc
-    pte = walkpgdir(myproc()->pgdir, tmp((char*)((myproc()->tf->esp) - PGSIZE)), 0);
-    *pte &= ~(PTE_P);
-  // 스택 확장 조건 검사
-  if (addr < stackbase && addr >= stackbase - PGSIZE * 5) {
-    mem = kalloc();
-    if (mem == 0) {
-      cprintf("pagefault: out of memory\n");
-      myproc()->killed = 1;
-    return;
-  }
-  }
-    mem = kalloc();
-    memset(mem, 0, PGSIZE);
-    if(mappages(myproc()->pgdir, (char*)((myproc()->tf->esp) - PGSIZE), PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
-      cprintf("allocuvm out of memory (2)\n");
-      kfree(mem);
+    // 스택 확장 조건 검사
+    if (addr < stackbase && addr >= stackbase - PGSIZE * 5) {
+        mem = kalloc();
+        if (mem == 0) {
+            cprintf("pagefault: out of memory\n");
+            myproc()->killed = 1;
+            return;
+        }
+        memset(mem, 0, PGSIZE);
+        if (mappages(myproc()->pgdir, (char*)PGROUNDDOWN(addr), PGSIZE, V2P(mem), PTE_W|PTE_U) < 0) {
+            cprintf("pagefault: map failed\n");
+            kfree(mem);
+            myproc()->killed = 1;
+            return;
+        }
+        cprintf("[Pagefault] Allocate new page for stack!\n");
+    } else {
+        cprintf("[Pagefault] Invalid access!\n");
+        myproc()->killed = 1;
     }
-    lcr3(V2P(myproc()->pgdir));
-    cprintf("[Pagefault] Allocate new page!\n");
-  }
-  else {
-    cprintf("[Pagefault] Invalid access!\n"); 
-    myproc()->killed = 1;
-  }
 }
+
 
 //PAGEBREAK!
 // Map user virtual address to kernel address.
