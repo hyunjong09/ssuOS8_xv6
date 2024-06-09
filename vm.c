@@ -248,6 +248,38 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   return newsz;
 }
 
+int
+allocuvm_stack(pde_t *pgdir, uint oldsz, uint newsz)
+{
+  char *mem;
+  uint a;
+
+  if(newsz >= KERNBASE)
+    return 0;
+  if(newsz < oldsz)
+    return oldsz;
+
+  a = PGROUNDUP(oldsz);
+  for(; a < newsz; a += PGSIZE){
+    if (a == newsz - PGSIZE || a == newsz - PGSIZE * 5) {
+      mem = kalloc();
+      if(mem == 0){
+        cprintf("allocuvm out of memory\n");
+        deallocuvm(pgdir, newsz, oldsz);
+        return 0;
+      }
+      memset(mem, 0, PGSIZE);
+      if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
+        cprintf("allocuvm out of memory (2)\n");
+        deallocuvm(pgdir, newsz, oldsz);
+        kfree(mem);
+        return 0;
+      }
+    }
+  }
+  return newsz;
+}
+
 // Deallocate user pages to bring the process size from oldsz to
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
 // need to be less than oldsz.  oldsz can be larger than the actual
@@ -325,8 +357,11 @@ copyuvm(pde_t *pgdir, uint sz)
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
-    if(!(*pte & PTE_P))
-      panic("copyuvm: page not present");
+    if(!(*pte & PTE_P)) {
+      if (i < myproc()->tf->esp - 4*PGSIZE) {
+        panic("copyuvm: page not present");
+      }
+    }
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
@@ -342,6 +377,36 @@ copyuvm(pde_t *pgdir, uint sz)
 bad:
   freevm(d);
   return 0;
+}
+ //PAGEFAULT
+
+static char* tmp(void *va) {
+
+  return (char*)PGROUNDDOWN((uint)va);
+}
+
+void pagefault(void)
+{
+  char* mem;
+  pte_t* pte;
+  uint addr = rcr2();
+  if((myproc()->tf->esp > PGSIZE*2) && (myproc()->tf->esp > addr && addr > myproc()->tf->esp - PGSIZE)) {
+  // 1 physical page alloc
+    pte = walkpgdir(myproc()->pgdir, tmp((char*)((myproc()->tf->esp) - PGSIZE)), 0);
+    *pte &= ~(PTE_P);
+    mem = kalloc();
+    memset(mem, 0, PGSIZE);
+    if(mappages(myproc()->pgdir, (char*)((myproc()->tf->esp) - PGSIZE), PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
+      cprintf("allocuvm out of memory (2)\n");
+      kfree(mem);
+    }
+    lcr3(V2P(myproc()->pgdir));
+    cprintf("[Pagefault] Allocate new page!\n");
+  }
+  else {
+    cprintf("[Pagefault] Invalid access!\n"); 
+    myproc()->killed = 1;
+  }
 }
 
 //PAGEBREAK!
@@ -384,6 +449,8 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   }
   return 0;
 }
+
+
 
 //PAGEBREAK!
 // Blank page.
