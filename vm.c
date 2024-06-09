@@ -383,46 +383,33 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
     va = va0 + PGSIZE;
   }
   return 0;
-}
-void pagefault(void) {
+void 
+pagefault(void)
+{
   pte_t *pte;
   uint rc, pa, va;
-
-  va = rcr2(); // faulting virtual address
-
-  // va가 음수가 될 수 없으므로, 올바른 주소 범위를 검사합니다.
-  if (va >= KERNBASE || va < 0) {
-    cprintf("Wrong VA pagefault: va = %x, proc = %s\n", va, myproc()->name);
+  va = rcr2(); //faulting virtual address
+  if(va < 0){
     panic("Wrong VA pagefault");
     return;
   }
-
   pte = walkpgdir(myproc()->pgdir, (void*)va, 0);
-  if (pte == 0 || !(*pte & PTE_P)) {
-    panic("Page table entry not found");
-    return;
-  }
-
   pa = PTE_ADDR(*pte);
   rc = get_refcount(pa);
 
-  if (rc > 1) {
+  if(rc > 1){
     char* mem;
     mem = kalloc();
-    if (mem == 0) {
-      panic("Memory allocation failed in pagefault");
-      return;
-    }
+    if(mem == 0) return;
     memmove(mem, (char*)P2V(pa), PGSIZE);
     *pte = V2P(mem) | PTE_P | PTE_U | PTE_W;
     dec_refcount(pa);
-  } else if (rc == 1) {
+  }
+  else if(rc == 1){
     *pte |= PTE_W;
   }
-
   lcr3(V2P(myproc()->pgdir));
 }
-
 
 
 //PAGEBREAK!
