@@ -390,10 +390,24 @@ void pagefault(void)
   char* mem;
   pte_t* pte;
   uint addr = rcr2();
+  uint stackbase;
+
+    // 현재 스택 포인터 가져오기
+  stackbase = PGROUNDDOWN(myproc()->tf->esp);
+
   if((myproc()->tf->esp > PGSIZE*2) && (myproc()->tf->esp > addr && addr > myproc()->tf->esp - PGSIZE)) {
   // 1 physical page alloc
     pte = walkpgdir(myproc()->pgdir, tmp((char*)((myproc()->tf->esp) - PGSIZE)), 0);
     *pte &= ~(PTE_P);
+  // 스택 확장 조건 검사
+  if (addr < stackbase && addr >= stackbase - PGSIZE * 5) {
+    mem = kalloc();
+    if (mem == 0) {
+      cprintf("pagefault: out of memory\n");
+      myproc()->killed = 1;
+    return;
+  }
+  }
     mem = kalloc();
     memset(mem, 0, PGSIZE);
     if(mappages(myproc()->pgdir, (char*)((myproc()->tf->esp) - PGSIZE), PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
