@@ -387,27 +387,32 @@ static char* tmp(void *va) {
 
 void pagefault(void)
 {
-  char* mem;
-  pte_t* pte;
-  uint addr = rcr2();
-  if((myproc()->tf->esp > PGSIZE*2) && (myproc()->tf->esp > addr && addr > myproc()->tf->esp - PGSIZE)) {
-  // 1 physical page alloc
-    pte = walkpgdir(myproc()->pgdir, tmp((char*)((myproc()->tf->esp) - PGSIZE)), 0);
-    *pte &= ~(PTE_P);
+  char *mem;
+  pte_t *pte;
+  uint addr = rcr2(); // Faulting address
+
+  // Check if the faulting address is within a valid stack range
+  if (addr < myproc()->sz && addr >= myproc()->tf->esp - 4 * PGSIZE && addr < KERNBASE) {
     mem = kalloc();
-    memset(mem, 0, PGSIZE);
-    if(mappages(myproc()->pgdir, (char*)((myproc()->tf->esp) - PGSIZE), PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
-      cprintf("allocuvm out of memory (2)\n");
-      kfree(mem);
+    if (mem == 0) {
+      cprintf("pagefault: out of memory\n");
+      myproc()->killed = 1;
+      return;
     }
-    lcr3(V2P(myproc()->pgdir));
-    cprintf("[Pagefault] Allocate new page!\n");
-  }
-  else {
-    cprintf("[Pagefault] Invalid access!\n"); 
+    memset(mem, 0, PGSIZE);
+    if (mappages(myproc()->pgdir, (char*)PGROUNDDOWN(addr), PGSIZE, V2P(mem), PTE_W|PTE_U) < 0) {
+      kfree(mem);
+      cprintf("pagefault: out of memory (2)\n");
+      myproc()->killed = 1;
+      return;
+    }
+    cprintf("[Pagefault] Allocated new page at address: 0x%x\n", PGROUNDDOWN(addr));
+  } else {
+    cprintf("[Pagefault] Invalid access at address: 0x%x\n", addr);
     myproc()->killed = 1;
   }
 }
+
 //PAGEBREAK!
 // Map user virtual address to kernel address.
 char*
