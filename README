@@ -1,51 +1,32 @@
-NOTE: we have stopped maintaining the x86 version of xv6, and switched
-our efforts to the RISC-V version
-(https://github.com/mit-pdos/xv6-riscv.git)
+실행 방법
+0. make qemu
 
-xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
-Version 6 (v6).  xv6 loosely follows the structure and style of v6,
-but is implemented for a modern x86-based multiprocessor using ANSI C.
+1. login 구현 확인
+//ID     password
+hyunjong 0909
+jaehak  0324
+minwoo 0522
+gwanghyun 1122
+// 4명의 ID, PW 선택
 
-ACKNOWLEDGMENTS
+2. systsem calls
+Shell 창에 "ps", "memsizetest" 입력
+- 현재 실행된 프로세스 상태, pid , priority 출력
 
-xv6 is inspired by John Lions's Commentary on UNIX 6th Edition (Peer
-to Peer Communications; ISBN: 1-57398-013-7; 1st edition (June 14,
-2000)). See also https://pdos.csail.mit.edu/6.828/, which
-provides pointers to on-line resources for v6.
+3. page fault
+fault_test2
+- 2페이지 크기(8KB)만큼의 메모리를 할당하고, 할당된 메모리 영역 밖의 주소(page_fault_addr)와 커널 영역의 주소를 설정하고 각 주소에 대한 테스트를 시행한다.
+ valid address가 들어올 경우 주소에 대한 유효성 여부를 출력하고 접근 어드레스에 대한 출력, 메모리 할당 여부를 반환한다. 
+할당된 메모리 영역 밖의 주소가 접근될 경우 page fault가 발생된 뒤 페이지 폴트 핸들러가 정상적으로 작동하면, 새로운 메모리 영역을 할당하여 유효성에 대한 반환값과 재할당 여부를 출력
+fault_test
+- stack 확장으로 페이지 폴트 유도//fault address에 맞춰 page allocate 여부 확인 가능
 
-xv6 borrows code from the following sources:
-    JOS (asm.h, elf.h, mmu.h, bootasm.S, ide.c, console.c, and others)
-    Plan 9 (entryother.S, mp.h, mp.c, lapic.c)
-    FreeBSD (ioapic.c)
-    NetBSD (console.c)
+4. file system
+-file_test
+double indirect 구현 확인
 
-The following people have made contributions: Russ Cox (context switching,
-locking), Cliff Frey (MP), Xiao Yu (MP), Nickolai Zeldovich, and Austin
-Clements.
 
-We are also grateful for the bug reports and patches contributed by Silas
-Boyd-Wickizer, Anton Burtsev, Cody Cutler, Mike CAT, Tej Chajed, eyalz800,
-Nelson Elhage, Saar Ettinger, Alice Ferrazzi, Nathaniel Filardo, Peter
-Froehlich, Yakir Goaron,Shivam Handa, Bryan Henry, Jim Huang, Alexander
-Kapshuk, Anders Kaseorg, kehao95, Wolfgang Keller, Eddie Kohler, Austin
-Liew, Imbar Marinescu, Yandong Mao, Matan Shabtay, Hitoshi Mitake, Carmi
-Merimovich, Mark Morrissey, mtasm, Joel Nider, Greg Price, Ayan Shafqat,
-Eldar Sehayek, Yongming Shen, Cam Tenny, tyfkda, Rafael Ubal, Warren
-Toomey, Stephen Tu, Pablo Ventura, Xi Wang, Keiichi Watanabe, Nicolas
-Wolovick, wxdao, Grant Wu, Jindong Zhang, Icenowy Zheng, and Zou Chang Wei.
-
-The code in the files that constitute xv6 is
-Copyright 2006-2018 Frans Kaashoek, Robert Morris, and Russ Cox.
-
-ERROR REPORTS
-
-We don't process error reports (see note on top of this file).
-
-BUILDING AND RUNNING XV6
-
-To build xv6 on an x86 ELF machine (like Linux or FreeBSD), run
-"make". On non-x86 or non-ELF machines (like OS X, even on x86), you
-will need to install a cross-compiler gcc suite capable of producing
-x86 ELF binaries (see https://pdos.csail.mit.edu/6.828/).
-Then run "make TOOLPREFIX=i386-jos-elf-". Now install the QEMU PC
-simulator and run "make qemu".
+5. 스케줄러 선택 // 스케줄러 정책 설정 필요
+FCSF > make SCHED_POLICY = FCFS_SCHED  > make qemu > "fcfs_test" 실행
+ML > make SCHED_POLICY = ML_SCHED > make qemu > "ml_test" 실행
+MLFQ > make SCHED_POLICY = MLFQ_SCHED > make qemu > "mlfq_test" 실행
