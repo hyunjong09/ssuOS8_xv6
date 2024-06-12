@@ -8,7 +8,7 @@
 #define NDBLINDIRECT ((NINDIRECT) * (NINDIRECT))
 #define NUM_BYTES ((NDBLINDIRECT) * (BSIZE))
 
-#define NUM_TEST3 1
+#define NUM_TEST3 2
 
 char buf[NUM_BYTES], buf2[NUM_BYTES];
 char filename[16] = "test_file0";
