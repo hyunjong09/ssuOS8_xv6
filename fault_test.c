@@ -28,13 +28,14 @@ void stack_expand_test() {
 }
 
 void pagefault_test() {
-    char *invalid_address = (char *)0x40000000; // An address likely to cause a page fault
+    char *valid_addr = sbrk(PGSIZE * 2); // Allocate 2 pages
+    char *page_fault_addr = valid_addr + (PGSIZE * 3);  // Address just outside allocated memory
 
     printf(1, "Starting pagefault test\n");
 
     // Access invalid memory to trigger a page fault
-    printf(1, "Accessing invalid memory address: %p\n", invalid_address);
-    *invalid_address = 'a';
+    printf(1, "Accessing invalid memory address: %p\n", page_fault_addr);
+    *page_fault_addr = 'a';
 
     printf(1, "Pagefault test did not trigger as expected\n");
 }
