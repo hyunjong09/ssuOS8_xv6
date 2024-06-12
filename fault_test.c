@@ -1,6 +1,7 @@
 #include "types.h"
 #include "stat.h"
 #include "user.h"
+#include "memlayout.h"
 
 void stack_expand_test() {
     int stack_size = 0;
